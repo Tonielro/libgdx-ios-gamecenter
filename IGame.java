@@ -138,10 +138,9 @@ class IGame {
     public void submitScore(int score, ScoreListener task){
         if(isActive()){
             if(leaderboard != null) {
-                int s = score + 1;
                 GKLocalPlayer player = GKLocalPlayer.getLocalPlayer();
                 NSArray<NSString> id = new NSArray<>(new NSString(leaderBoardId));
-                GKLeaderboard.submitScore(s, 0, player, id, new VoidBlock1<NSError>() {
+                GKLeaderboard.submitScore(score, 0, player, id, new VoidBlock1<NSError>() {
                     @Override
                     public void invoke(NSError nsError) {
                         if (nsError == null) {
