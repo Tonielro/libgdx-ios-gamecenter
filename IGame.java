@@ -1,8 +1,4 @@
-package com.tonielrosoft.classicludofree;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.scenes.scene2d.actions.RunnableAction;
-import com.tonielrosoft.classicludofree.controls.ScoreListener;
 
 import org.robovm.apple.foundation.NSArray;
 import org.robovm.apple.foundation.NSError;
@@ -47,7 +43,7 @@ class IGame {
     /**
      * Login if player has not logged in
      */
-    public void login(RunnableAction task){
+    public void login(Runnable task){
         if(uiViewController == null)return;
         if(!isActive()){
             if(isConnecting)return;
@@ -170,7 +166,7 @@ class IGame {
                 viewController.setGameCenterDelegate(new GKGameCenterControllerDelegateAdapter(){
                     @Override
                     public void didFinish(GKGameCenterViewController gameCenterViewController) {
-                        super.didFinish(gameCenterViewController);
+                          gameCenterViewController.dismissViewController(true, null);
                     }
                 });
                 if(uiViewController != null){
