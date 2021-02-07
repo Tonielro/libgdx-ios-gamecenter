@@ -1,27 +1,23 @@
+package com.tonielro.IGame;
 
-
+import com.badlogic.gdx.scenes.scene2d.actions.RunnableAction;
 import org.robovm.apple.foundation.NSArray;
 import org.robovm.apple.foundation.NSError;
 import org.robovm.apple.foundation.NSRange;
 import org.robovm.apple.foundation.NSString;
+import org.robovm.apple.gamekit.GKAchievement;
 import org.robovm.apple.gamekit.GKGameCenterControllerDelegateAdapter;
 import org.robovm.apple.gamekit.GKGameCenterViewController;
 import org.robovm.apple.gamekit.GKGameCenterViewControllerState;
 import org.robovm.apple.gamekit.GKLeaderboard;
 import org.robovm.apple.gamekit.GKLeaderboardEntry;
 import org.robovm.apple.gamekit.GKLeaderboardPlayerScope;
-import org.robovm.apple.gamekit.GKLeaderboardScore;
 import org.robovm.apple.gamekit.GKLeaderboardTimeScope;
 import org.robovm.apple.gamekit.GKLocalPlayer;
-import org.robovm.apple.gamekit.GKPlayer;
-import org.robovm.apple.gamekit.GKScore;
 import org.robovm.apple.uikit.UIViewController;
 import org.robovm.objc.block.VoidBlock1;
 import org.robovm.objc.block.VoidBlock2;
-import org.robovm.objc.block.VoidBlock3;
 import org.robovm.objc.block.VoidBlock4;
-
-import java.util.ListIterator;
 
 class IGame {
     private GKLeaderboard leaderboard;
@@ -37,13 +33,17 @@ class IGame {
         this.leaderBoardId = leaderBoardId;
     }
 
+    public GKLeaderboard getLeaderboard() {
+        return leaderboard;
+    }
+
     public void setListener(IGameListener listener) {
         this.listener = listener;
     }
     /**
      * Login if player has not logged in
      */
-    public void login(Runnable task){
+    public void login(RunnableAction task){
         if(uiViewController == null)return;
         if(!isActive()){
             if(isConnecting)return;
@@ -61,9 +61,12 @@ class IGame {
                             if (viewController != null) {
                                 uiViewController.presentViewController(viewController, true, null);
                             } else if (player.isAuthenticated()) {
+                                /*
                                 if (leaderboard == null) {
                                     getLeaderBoard();
                                 }
+                                
+                                 */
                                 listener.onActive();
                                 if (task != null) task.run();
                             } else {
@@ -75,6 +78,7 @@ class IGame {
             }
         }
     }
+
 
     /**
      * Resume login if already logged in
@@ -89,9 +93,12 @@ class IGame {
                         isConnecting = false;
                         if (nsError == null) {
                             if (player.isAuthenticated()) {
+                                /*
                                 if (leaderboard == null) {
                                     getLeaderBoard();
                                 }
+                                
+                                 */
                                 if (!isResumed) {
                                     isResumed = true;
                                     listener.onActive();
@@ -119,13 +126,13 @@ class IGame {
                         for(GKLeaderboard board : gkLeaderboards){
                             if(board.getBaseLeaderboardID().matches(leaderBoardId)){
                                 IGame.this.leaderboard = board;
-                                loadScore(board);
                                 break;
                             }
                         }
                     }
                 }
             });
+
         }
 
     }
@@ -133,9 +140,9 @@ class IGame {
     /**
      * Submit score to leaderBoard
      * @param score score to be submitted
-     * @param task callback
+     *
      */
-    public void submitScore(int score, ScoreListener task){
+    public void submitScore(int score){
         if(isActive()){
             if(leaderboard != null) {
                 GKLocalPlayer player = GKLocalPlayer.getLocalPlayer();
@@ -144,7 +151,7 @@ class IGame {
                     @Override
                     public void invoke(NSError nsError) {
                         if (nsError == null) {
-                            if (task != null) task.onScoreReceived(0, 0);
+                            if(listener != null)listener.onScoreSubmitted();
                         }
                     }
                 });
@@ -160,32 +167,59 @@ class IGame {
         if(isActive()) {
             GKGameCenterViewController viewController =
                     new GKGameCenterViewController(leaderBoardId,
-                            GKLeaderboardPlayerScope.Global, GKLeaderboardTimeScope.AllTime);
-            if (!viewController.equals(null)) {
-                viewController.setGameCenterDelegate(new GKGameCenterControllerDelegateAdapter(){
-                    @Override
-                    public void didFinish(GKGameCenterViewController gameCenterViewController) {
-                          gameCenterViewController.dismissViewController(true, null);
-                    }
-                });
-                if(uiViewController != null){
-                    uiViewController.presentViewController(viewController, true, null);
+                            GKLeaderboardPlayerScope.Global, GKLeaderboardTimeScope.Today);
+            viewController.setGameCenterDelegate(new GKGameCenterControllerDelegateAdapter(){
+                @Override
+                public void didFinish(GKGameCenterViewController gameCenterViewController) {
+                    gameCenterViewController.dismissViewController(true, null);
                 }
-
-            }else {
-                if(listener != null)listener.onError("Leaderboard couldn't be displayed " +
-                        "on your device.");
+            });
+            if(uiViewController != null){
+                uiViewController.presentViewController(viewController, true, null);
             }
+
         }else {
             if(listener != null)listener.onError("Please login first.");
         }
     }
+    public void showAchievements(){
+        if (!isActive())return;
+        GKGameCenterViewController gameCenterView =
+                new GKGameCenterViewController(GKGameCenterViewControllerState.Achievements);
+        gameCenterView.setGameCenterDelegate(new GKGameCenterControllerDelegateAdapter() {
+            @Override
+            public void didFinish(GKGameCenterViewController gameCenterViewController) {
+                gameCenterViewController.dismissViewController(true, null);
+            }
+        });
+        if(uiViewController != null) {
+            uiViewController.presentViewController(gameCenterView, true, null);
+        }
+    }
+    public boolean incrementAchievement(String achievementId, float completionPercentage) {
+        if (isActive() && achievementId != null) {
+            GKAchievement achievement = new GKAchievement(achievementId);
+            achievement.setPercentComplete(completionPercentage * 100);
+            achievement.setShowsCompletionBanner(true);
+            // Create an array with the achievement
+            NSArray<GKAchievement> achievements = new NSArray<>(achievement);
+            GKAchievement.reportAchievements(achievements, new VoidBlock1<NSError>() {
+                @Override
+                public void invoke (NSError error) {
+                    // do nothing
+                }
+            });
 
+            return true;
+        }
+
+        return false;
+    }
     /**
      * Load player score from leaderBoard
-     * @param task callback
+     *
      */
-    public void loadScore(ScoreListener task){
+    public void loadScore(){
         if(!isActive())return;
         if(leaderboard != null) {
             if (!scoreLoading) {
@@ -198,7 +232,7 @@ class IGame {
                                 if (nsError == null && gkLeaderboardEntry != null) {
                                     int score = (int) gkLeaderboardEntry.getScore();
                                     int rank = (int) gkLeaderboardEntry.getRank();
-                                    if (task != null) task.onScoreReceived(score, rank);
+                                    if (listener != null) listener.onScoreLoaded(score, rank);
                                 }
                             }
                         });
@@ -245,6 +279,7 @@ class IGame {
     public interface IGameListener{
         void onActive();
         void onScoreLoaded(int score, int rank);
+        void onScoreSubmitted();
         void onError(String error);
     }
 
