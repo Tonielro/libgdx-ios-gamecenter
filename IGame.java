@@ -1,6 +1,5 @@
-package com.tonielro.IGame;
+package com.tonielrosoft.IGame;
 
-import com.badlogic.gdx.scenes.scene2d.actions.RunnableAction;
 import org.robovm.apple.foundation.NSArray;
 import org.robovm.apple.foundation.NSError;
 import org.robovm.apple.foundation.NSRange;
@@ -43,7 +42,7 @@ class IGame {
     /**
      * Login if player has not logged in
      */
-    public void login(RunnableAction task){
+    public void login(){
         if(uiViewController == null)return;
         if(!isActive()){
             if(isConnecting)return;
@@ -65,10 +64,10 @@ class IGame {
                                 if (leaderboard == null) {
                                     getLeaderBoard();
                                 }
-                                
+
                                  */
                                 listener.onActive();
-                                if (task != null) task.run();
+                               // if (task != null) task.run();
                             } else {
                                 listener.onError("Please use Game Center settings to log in.");
                             }
@@ -97,7 +96,7 @@ class IGame {
                                 if (leaderboard == null) {
                                     getLeaderBoard();
                                 }
-                                
+
                                  */
                                 if (!isResumed) {
                                     isResumed = true;
